@@ -1,0 +1,121 @@
+[project]
+name = "node804-hpe-msa-mcp"
+dynamic = ["version"]
+description = "Token-efficient, read-only MCP server for HPE MSA (Modular Smart Array) storage"
+readme = "README.md"
+requires-python = ">=3.13"
+license = "MIT"
+keywords = [
+    "mcp",
+    "model-context-protocol",
+    "hpe",
+    "msa",
+    "storage",
+    "san",
+    "hpe-msa",
+    "modular-smart-array",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: System Administrators",
+    "Intended Audience :: Information Technology",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: System :: Systems Administration",
+    "Typing :: Typed",
+]
+dependencies = [
+    # Upper bounds are major-version caps to protect against silent breakage
+    # when an upstream ships a 2.0 with API changes. Loosen when an upstream
+    # is verified compatible.
+    "mcp[cli]>=1.3.0,<2.0",
+    "pydantic>=2.10.6,<3.0",
+    # MSA has no vendor SDK — we talk to its REST management API directly.
+    "httpx>=0.28.1,<1.0",
+    "keyring>=25.0,<30",
+    "python-dotenv>=1.0.0,<2.0",
+    # Shared RBAC / TLS / shaping utilities. Published alongside this package.
+    "node804-mcp-toolkit>=0.1.0,<1.0",
+]
+
+[[project.authors]]
+name = "Michael Pope"
+email = "me@michaelpope.cv"
+
+[project.urls]
+Homepage = "https://github.com/Node804/node804-hpe-msa-mcp"
+Repository = "https://github.com/Node804/node804-hpe-msa-mcp"
+Issues = "https://github.com/Node804/node804-hpe-msa-mcp/issues"
+
+[project.scripts]
+node804-hpe-msa-mcp = "hpe_msa_mcp.server:main"
+node804-hpe-msa-mcp-setup = "hpe_msa_mcp.setup:main"
+
+[project.optional-dependencies]
+dev = [
+    # Dev-only deps; bounds are looser because breakage here affects
+    # contributors rather than end users.
+    "pytest>=8.0,<11.0",
+    "pytest-asyncio>=0.23,<2.0",
+    "pytest-cov>=5.0,<9.0",
+    # respx mocks httpx transports so the client's login/session/re-login
+    # logic can be tested without a live array.
+    "respx>=0.21,<1.0",
+    # Ruff is pinned to an exact version so local, pre-commit, and CI all
+    # format and lint identically.
+    "ruff==0.15.13",
+    "mypy>=1.10,<2.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.version]
+path = "src/hpe_msa_mcp/__init__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/hpe_msa_mcp"]
+
+# Bundle the hpe-msa-engineer skill inside the wheel so the setup wizard can
+# install it offline (copied in from the repo-root skills/ tree at build time).
+[tool.hatch.build.targets.wheel.force-include]
+"skills/hpe-msa-engineer" = "hpe_msa_mcp/skills/hpe-msa-engineer"
+
+[tool.hatch.build.targets.sdist]
+# Keep generated reports, local agent settings, and CI scaffolding out of the
+# source distribution; ship only what's needed to build and test the package.
+exclude = ["report", ".claude", ".github", ".mypy_cache", ".ruff_cache"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM", "RUF"]
+# B008: pydantic frozen models as default args are safe (immutable). The
+# Pagination()/Pattern()/etc. defaults from node804_mcp_toolkit are intentional
+# and match the FastMCP idiom used across the suite.
+ignore = ["E501", "B008"]
+
+[tool.mypy]
+python_version = "3.13"
+strict = true
+warn_unused_ignores = true
+disallow_untyped_defs = true
+
+# The MCP SDK and keyring don't ship type stubs. We don't want to silence type
+# errors in our own code, just stop mypy from complaining about those imports.
+[[tool.mypy.overrides]]
+module = ["mcp.*", "keyring", "keyring.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+markers = [
+    "integration: requires a live HPE MSA array (skipped by default)",
+]
