@@ -13,6 +13,10 @@ on:
   push:
     tags: ["v*"]
 
+# Default to read-only for every job; the publish job opts into id-token below.
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -21,6 +25,15 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
+      - name: Assert tag matches package version
+        # Refuse to build a release whose tag doesn't match __version__, so a
+        # mistyped tag can never publish the wrong version to PyPI.
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          ver="$(python -c 'import sys; sys.path.insert(0, "src"); import hpe_msa_mcp; print(hpe_msa_mcp.__version__)')"
+          if [ "$tag" != "$ver" ]; then
+            echo "::error::tag v$tag does not match package version $ver"; exit 1
+          fi
       - name: Build sdist and wheel
         run: |
           python -m pip install --upgrade pip build
