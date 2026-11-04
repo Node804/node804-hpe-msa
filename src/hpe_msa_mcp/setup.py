@@ -1,8 +1,8 @@
 """Interactive setup wizard for hpe-msa-mcp.
 
-Run it after ``pip install node804-hpe-msa-mcp`` (or ``uvx``):
+Run it after ``pip install node804-hpe-msa`` (or ``uvx``):
 
-    node804-hpe-msa-mcp-setup        # console script
+    node804-hpe-msa-setup        # console script
     python -m hpe_msa_mcp.setup      # equivalent
 
 It walks through the things the server needs:
@@ -27,11 +27,11 @@ is touched.
 
 Subcommands (the wizard is the default when none is given)::
 
-    node804-hpe-msa-mcp-setup                 # full wizard (modify-aware)
-    node804-hpe-msa-mcp-setup skill           # install/upgrade the skill only
-    node804-hpe-msa-mcp-setup array list      # show configured entries
-    node804-hpe-msa-mcp-setup array add       # add or update an entry
-    node804-hpe-msa-mcp-setup array remove --name prod
+    node804-hpe-msa-setup                 # full wizard (modify-aware)
+    node804-hpe-msa-setup skill           # install/upgrade the skill only
+    node804-hpe-msa-setup array list      # show configured entries
+    node804-hpe-msa-setup array add       # add or update an entry
+    node804-hpe-msa-setup array remove --name prod
 
 The wizard is modify-aware: when ``arrays.json`` already has entries it lists them
 and lets you skip straight to the client/skill steps, so re-running it to re-wire
@@ -710,7 +710,7 @@ def _add_wizard_args(p: argparse.ArgumentParser) -> None:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="node804-hpe-msa-mcp-setup",
+        prog="node804-hpe-msa-setup",
         description=(
             "Set up and manage hpe-msa-mcp: arrays.json, the keychain password, "
             "AI-client config, and the hpe-msa-engineer skill."
@@ -756,7 +756,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
 
     # Default to the wizard when no subcommand is given, so a bare
-    # `node804-hpe-msa-mcp-setup` and `... --name x` both run the wizard — but let
+    # `node804-hpe-msa-setup` and `... --name x` both run the wizard — but let
     # top-level `-h/--help` through so the subcommands stay discoverable.
     raw = list(sys.argv[1:] if argv is None else argv)
     known = {"wizard", "skill", "array"}

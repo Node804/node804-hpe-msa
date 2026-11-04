@@ -1,5 +1,5 @@
 [project]
-name = "node804-hpe-msa-mcp"
+name = "node804-hpe-msa"
 dynamic = ["version"]
 description = "Token-efficient, read-only MCP server for HPE MSA (Modular Smart Array) storage"
 readme = "README.md"
@@ -51,8 +51,8 @@ Repository = "https://github.com/Node804/node804-hpe-msa"
 Issues = "https://github.com/Node804/node804-hpe-msa/issues"
 
 [project.scripts]
-node804-hpe-msa-mcp = "hpe_msa_mcp.server:main"
-node804-hpe-msa-mcp-setup = "hpe_msa_mcp.setup:main"
+node804-hpe-msa = "hpe_msa_mcp.server:main"
+node804-hpe-msa-setup = "hpe_msa_mcp.setup:main"
 
 [project.optional-dependencies]
 dev = [

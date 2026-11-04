@@ -51,10 +51,10 @@ whitelists (`verbose=true` to opt out) with `fields` / `pattern` / `pagination`.
   (`MSA_TLS_VERIFY` / `MSA_TLS_CA`), and an optional JSONL audit log
   (`MSA_AUDIT_LOG`).
 
-### Added — `node804-hpe-msa-mcp-setup` install wizard
+### Added — `node804-hpe-msa-setup` install wizard
 
 A bundled wizard that configures the server end to end, so a new install no
-longer means hand-editing JSON. Run `node804-hpe-msa-mcp-setup` (or
+longer means hand-editing JSON. Run `node804-hpe-msa-setup` (or
 `python -m hpe_msa_mcp.setup` if the console script isn't on `PATH`).
 
 - Stores the controller password in the OS keychain (read with `getpass`,
@@ -81,7 +81,7 @@ audit, performance review, event triage, firmware inventory).
 
 ### Added — packaging & CI
 
-- Console scripts `node804-hpe-msa-mcp` and `node804-hpe-msa-mcp-setup`.
+- Console scripts `node804-hpe-msa` and `node804-hpe-msa-setup`.
 - GitHub Actions: CI (ruff, ruff format, mypy `--strict`, pytest on Python 3.13
   and 3.14) and PyPI publishing via Trusted Publishing (OIDC) on `v*` tags.
 - Pre-commit hooks (ruff) pinned to the same ruff version as CI.

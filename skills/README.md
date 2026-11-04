@@ -51,9 +51,9 @@ live **once** in the server's `instructions` (`SERVER_INSTRUCTIONS` in
 
 ## Install
 
-The `node804-hpe-msa-mcp-setup` wizard installs this skill into
+The `node804-hpe-msa-setup` wizard installs this skill into
 `~/.claude/skills` (Claude Code) and writes a `hpe-msa-engineer-skill.zip` for
-upload to Claude Desktop / claude.ai. Or run `node804-hpe-msa-mcp-setup skill`
+upload to Claude Desktop / claude.ai. Or run `node804-hpe-msa-setup skill`
 to (re)install just the skill. The skill is also bundled inside the published
 wheel so the wizard can install it offline.
 

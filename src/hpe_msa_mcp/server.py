@@ -108,7 +108,7 @@ register_utility_tools(ctx)
 
 
 def main() -> None:
-    """Entry point for the ``node804-hpe-msa-mcp`` console script."""
+    """Entry point for the ``node804-hpe-msa`` console script."""
     load_array_config()
     print(f"hpe-msa-mcp {__version__} starting", file=sys.stderr)
     print(f"MSA TLS:   {describe_tls(tls_config)}", file=sys.stderr)

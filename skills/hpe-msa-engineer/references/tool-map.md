@@ -81,6 +81,6 @@ A tool that fails returns `{"error": "..."}`; check that before trusting output.
 
 Registering arrays and setting shared credentials are **not** MCP tools —
 exposing config/keychain mutation to the model is a prompt-injection risk. If the
-user asks to add or change an array, point them at the `node804-hpe-msa-mcp-setup`
+user asks to add or change an array, point them at the `node804-hpe-msa-setup`
 wizard (`array add` / `array remove`, or shared-default setup); don't look for a
 tool to do it.

@@ -10,7 +10,7 @@ Registering or editing arrays and shared credentials is deliberately NOT exposed
 as an MCP tool. That is local config + keychain mutation driven from a prompt,
 and a prompt-injection could register an attacker-controlled host inheriting the
 shared monitoring credential — a credential-exfil path on the next login. Those
-operations live only in the ``node804-hpe-msa-mcp-setup`` CLI wizard, which the
+operations live only in the ``node804-hpe-msa-setup`` CLI wizard, which the
 user runs themselves. The underlying ``save_array_entry`` / ``save_defaults`` /
 ``remove_array_entry`` helpers remain in ``config.arrays`` for the wizard.
 """

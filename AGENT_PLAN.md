@@ -1,6 +1,6 @@
 # HPE MSA MCP — Agent Build Plan
 
-> Working plan for building `node804-hpe-msa-mcp`, a token-efficient, read-only
+> Working plan for building `node804-hpe-msa`, a token-efficient, read-only
 > MCP server for HPE MSA (Modular Smart Array) storage. This document is the
 > source of truth an implementing agent follows. Keep it updated as decisions
 > change.
@@ -48,7 +48,7 @@ re-login-on-expiry instead of delegating to an SDK.
 
 ```
 hpe-msa-mcp/
-  pyproject.toml            # node804-hpe-msa-mcp, console script node804-hpe-msa-mcp
+  pyproject.toml            # node804-hpe-msa, console script node804-hpe-msa
   README.md                 # env table + tool catalog
   LICENSE                   # MIT
   .gitignore

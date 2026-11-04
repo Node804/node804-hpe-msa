@@ -5,7 +5,7 @@ name: Publish to PyPI
 # The tag version must match __version__ in src/hpe_msa_mcp/__init__.py.
 #
 # Uses PyPI Trusted Publishing (OIDC) — no API token stored in the repo. Configure
-# the publisher once at https://pypi.org/manage/project/node804-hpe-msa-mcp/settings/publishing/
+# the publisher once at https://pypi.org/manage/project/node804-hpe-msa/settings/publishing/
 # (workflow: publish.yml, environment: pypi) and create a GitHub environment named
 # "pypi".
 

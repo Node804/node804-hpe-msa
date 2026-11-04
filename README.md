@@ -1,8 +1,8 @@
-# node804-hpe-msa-mcp
+# node804-hpe-msa
 
 [![CI](https://github.com/Node804/node804-hpe-msa/actions/workflows/ci.yml/badge.svg)](https://github.com/Node804/node804-hpe-msa/actions/workflows/ci.yml)
-[![PyPI](https://img.shields.io/pypi/v/node804-hpe-msa-mcp)](https://pypi.org/project/node804-hpe-msa-mcp/)
-[![Python](https://img.shields.io/pypi/pyversions/node804-hpe-msa-mcp)](https://pypi.org/project/node804-hpe-msa-mcp/)
+[![PyPI](https://img.shields.io/pypi/v/node804-hpe-msa)](https://pypi.org/project/node804-hpe-msa/)
+[![Python](https://img.shields.io/pypi/pyversions/node804-hpe-msa)](https://pypi.org/project/node804-hpe-msa/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 A token-efficient, **read-only** [Model Context Protocol](https://modelcontextprotocol.io)
@@ -46,13 +46,13 @@ Requires Python ≥ 3.13.
 PyPI on first run and caches it. Pin the version so upgrades are deliberate:
 
 ```bash
-uvx node804-hpe-msa-mcp==0.1.0
+uvx node804-hpe-msa==0.1.0
 ```
 
 **Option B — pip:**
 
 ```bash
-pip install node804-hpe-msa-mcp
+pip install node804-hpe-msa
 ```
 
 **Option C — from source (development):**
@@ -63,15 +63,15 @@ cd node804-hpe-msa
 uv sync          # or: pip install -e ".[dev]"
 ```
 
-Each option provides the `node804-hpe-msa-mcp` command (and the
-`node804-hpe-msa-mcp-setup` wizard), plus the `hpe_msa_mcp` Python module
+Each option provides the `node804-hpe-msa` command (and the
+`node804-hpe-msa-setup` wizard), plus the `hpe_msa_mcp` Python module
 (runnable as `python -m hpe_msa_mcp`). The package pulls in its dependency
 [`node804-mcp-toolkit`](https://pypi.org/project/node804-mcp-toolkit/) — shared
 RBAC, audit-logging, TLS, and lean-response utilities — automatically.
 
 On Windows, a pip/venv install puts the console scripts at
-`.venv\Scripts\node804-hpe-msa-mcp.exe` (and `...-setup.exe`); on Linux/macOS at
-`.venv/bin/node804-hpe-msa-mcp`. When configuring an MCP host, use the command's
+`.venv\Scripts\node804-hpe-msa.exe` (and `...-setup.exe`); on Linux/macOS at
+`.venv/bin/node804-hpe-msa`. When configuring an MCP host, use the command's
 absolute path (or run it via `uvx`) — see the [Claude Desktop](#claude-desktop)
 section for a full Windows example.
 
@@ -80,10 +80,10 @@ section for a full Windows example.
 After a pip install, the fastest way to get configured is the bundled wizard:
 
 ```bash
-node804-hpe-msa-mcp-setup
+node804-hpe-msa-setup
 ```
 
-> **If `node804-hpe-msa-mcp-setup` isn't found**, the console script isn't on
+> **If `node804-hpe-msa-setup` isn't found**, the console script isn't on
 > your `PATH` (common with a pip `--user` install or a venv that isn't active).
 > Use the module form instead — it's identical and works for every subcommand
 > below:
@@ -112,25 +112,25 @@ is touched. For a scripted, non-interactive install, provide the password in the
 `MSA_SETUP_PASSWORD` environment variable and pass `--yes`:
 
 ```bash
-MSA_SETUP_PASSWORD='...' node804-hpe-msa-mcp-setup \
+MSA_SETUP_PASSWORD='...' node804-hpe-msa-setup \
   --name prod --host 10.0.0.10,10.0.0.11 --username monitor \
   --claude --skill --yes
 ```
 
-Run `node804-hpe-msa-mcp-setup --help` (or `python -m hpe_msa_mcp.setup --help`)
+Run `node804-hpe-msa-setup --help` (or `python -m hpe_msa_mcp.setup --help`)
 for every flag. The wizard is **modify-aware**: when `arrays.json` already has
 entries it lists them and lets you skip straight to the client/skill steps, so
 re-running it never forces you to re-enter an array. It also exposes subcommands
 for day-to-day changes:
 
 ```bash
-# Upgrade just the skill (after pip install -U node804-hpe-msa-mcp)
-node804-hpe-msa-mcp-setup skill
+# Upgrade just the skill (after pip install -U node804-hpe-msa)
+node804-hpe-msa-setup skill
 
 # Manage arrays.json without the full wizard
-node804-hpe-msa-mcp-setup array list
-node804-hpe-msa-mcp-setup array add --name branch --host 10.0.0.30
-node804-hpe-msa-mcp-setup array remove --name branch
+node804-hpe-msa-setup array list
+node804-hpe-msa-setup array add --name branch --host 10.0.0.30
+node804-hpe-msa-setup array remove --name branch
 ```
 
 ## Configuration
@@ -186,7 +186,7 @@ Two sources, in priority order:
    The shared default **password** is never stored in the file — it lives in the
    keychain default account. Set it (and the default username), and register
    arrays with just a name + host, using the
-   [`node804-hpe-msa-mcp-setup`](#quick-setup-wizard) wizard. Or, for a fully
+   [`node804-hpe-msa-setup`](#quick-setup-wizard) wizard. Or, for a fully
    env-driven setup, leave `defaults.username` out and set `MSA_USERNAME` +
    `MSA_PASSWORD` — they act as the shared default for every array entry that
    doesn't specify its own.
@@ -235,7 +235,7 @@ If the console script is on the host's `PATH`:
 {
   "mcpServers": {
     "hpe-msa": {
-      "command": "node804-hpe-msa-mcp",
+      "command": "node804-hpe-msa",
       "env": { "MSA_HOST": "10.0.0.10", "MSA_USERNAME": "manage", "MSA_PASSWORD": "..." }
     }
   }
@@ -269,7 +269,7 @@ Use the console script's absolute path. In JSON, backslashes must be escaped
 {
   "mcpServers": {
     "hpe-msa": {
-      "command": "C:\\Users\\you\\Repos\\MCP\\hpe-msa-mcp\\.venv\\Scripts\\node804-hpe-msa-mcp.exe",
+      "command": "C:\\Users\\you\\Repos\\MCP\\hpe-msa-mcp\\.venv\\Scripts\\node804-hpe-msa.exe",
       "env": {
         "MSA_HOST": "10.0.0.10",
         "MSA_USERNAME": "manage",
@@ -306,7 +306,7 @@ Alternatively, invoke the module through the venv's Python (handy if the
 {
   "mcpServers": {
     "hpe-msa": {
-      "command": "/Users/you/Repos/MCP/hpe-msa-mcp/.venv/bin/node804-hpe-msa-mcp",
+      "command": "/Users/you/Repos/MCP/hpe-msa-mcp/.venv/bin/node804-hpe-msa",
       "env": {
         "MSA_HOST": "10.0.0.10",
         "MSA_USERNAME": "manage",
@@ -382,7 +382,7 @@ All tools are `Mode.READ`. List tools accept `verbose` / `fields` / `pattern` /
 > credentials mutate local config + the OS keychain, and exposing that to the
 > model is a prompt-injection risk (a malicious instruction could register an
 > attacker host that inherits your monitoring credential and leak it on the next
-> login). Use the [`node804-hpe-msa-mcp-setup`](#quick-setup-wizard) wizard —
+> login). Use the [`node804-hpe-msa-setup`](#quick-setup-wizard) wizard —
 > `array add` / `array remove` and shared-default setup live there, run by you.
 
 ## Development
@@ -414,7 +414,7 @@ Copy-Item -Recurse skills\hpe-msa-engineer "$env:USERPROFILE\.claude\skills\"
 
 For **Claude Desktop / claude.ai**, zip the folder (the archive must contain
 `hpe-msa-engineer/SKILL.md`) and upload it under **Settings → Capabilities →
-Skills** — or just run `node804-hpe-msa-mcp-setup skill`, which writes the zip for
+Skills** — or just run `node804-hpe-msa-setup skill`, which writes the zip for
 you. After upgrading the server, update the skill too; it describes tool behavior
 for the matching version.
 
