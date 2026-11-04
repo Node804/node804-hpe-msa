@@ -68,6 +68,8 @@ dev = [
     # format and lint identically.
     "ruff==0.15.13",
     "mypy>=1.10,<2.0",
+    # Runs the git hooks in .pre-commit-config.yaml (same ruff rev as above).
+    "pre-commit>=3.5,<5.0",
 ]
 
 [build-system]
