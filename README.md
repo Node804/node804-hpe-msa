@@ -171,11 +171,12 @@ Two sources, in priority order:
    ```
 
    The shared default **password** is never stored in the file — it lives in the
-   keychain default account. Set it (and the default username) with the
-   `set_default_credentials` tool, then register arrays with `add_array` (name +
-   host only). Or, for a fully env-driven setup, leave `defaults.username` out
-   and set `MSA_USERNAME` + `MSA_PASSWORD` — they act as the shared default for
-   every array entry that doesn't specify its own.
+   keychain default account. Set it (and the default username), and register
+   arrays with just a name + host, using the
+   [`node804-hpe-msa-mcp-setup`](#quick-setup-wizard) wizard. Or, for a fully
+   env-driven setup, leave `defaults.username` out and set `MSA_USERNAME` +
+   `MSA_PASSWORD` — they act as the shared default for every array entry that
+   doesn't specify its own.
 
 2. **Environment fallback** (single array) — used when no `arrays.json` exists:
 
@@ -363,12 +364,13 @@ All tools are `Mode.READ`. List tools accept `verbose` / `fields` / `pattern` /
   The `show` verb is fixed by the server; the command and arguments are validated
   against a safe token charset, so it can never mutate the array.
 - **`list_arrays`** — configured targets + shared defaults (never passwords).
-- **`set_default_credentials`** — set the shared default username and/or password
-  used by all arrays (local config + keychain write only).
-- **`add_array`** — register an array in local config + keychain. Takes `host`
-  or a `hosts` failover list; `username`/`password` are optional and inherit the
-  shared defaults when omitted. Local config write only; does not touch the
-  storage array.
+
+> **Configuring arrays is not an MCP tool.** Registering arrays and setting shared
+> credentials mutate local config + the OS keychain, and exposing that to the
+> model is a prompt-injection risk (a malicious instruction could register an
+> attacker host that inherits your monitoring credential and leak it on the next
+> login). Use the [`node804-hpe-msa-mcp-setup`](#quick-setup-wizard) wizard —
+> `array add` / `array remove` and shared-default setup live there, run by you.
 
 ## Development
 

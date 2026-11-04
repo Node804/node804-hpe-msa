@@ -77,11 +77,10 @@ A tool that fails returns `{"error": "..."}`; check that before trusting output.
 | Tool | Use | Writes? |
 |------|-----|---------|
 | `run_show_command` | Generic `show`-verb passthrough for a command with no dedicated tool. **Rejects any verb other than `show`** — cannot mutate the array. | No (array) |
-| `list_arrays` | List configured array names + hosts | No |
-| `add_array` | Add/update a local array registry entry (name/host(s), optional user/pass → keychain). This writes **local MCP config**, never the array. | Local only |
-| `set_default_credentials` | Set the shared default username/password used by entries without their own. Local config only. | Local only |
+| `list_arrays` | List configured array names + hosts + shared defaults (never passwords) | No |
 
-`add_array` / `set_default_credentials` write only the local registry + OS
-keychain — they stay within the read-only posture toward the hardware. Most users
-set these up once via the `node804-hpe-msa-mcp-setup` wizard rather than at
-runtime.
+Registering arrays and setting shared credentials are **not** MCP tools —
+exposing config/keychain mutation to the model is a prompt-injection risk. If the
+user asks to add or change an array, point them at the `node804-hpe-msa-mcp-setup`
+wizard (`array add` / `array remove`, or shared-default setup); don't look for a
+tool to do it.

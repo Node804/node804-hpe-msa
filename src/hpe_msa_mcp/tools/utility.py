@@ -1,13 +1,18 @@
-"""Utility tools: generic show escape hatch + array registry management.
+"""Utility tools: generic show escape hatch + array registry inspection.
 
 - ``run_show_command`` (Mode.READ) — run any read-only ``show`` command not
   covered by a dedicated tool. Hard-restricted to the ``show`` verb: the verb
   is fixed by this code, never taken from the caller, so it can't be used to
   mutate the array.
 - ``list_arrays`` (Mode.READ) — list configured array targets (never passwords).
-- ``add_array`` (Mode.READ) — register a new array in the local config +
-  keychain. This writes *local MCP config*, not the array, so it's within the
-  read-only posture toward the storage itself.
+
+Registering or editing arrays and shared credentials is deliberately NOT exposed
+as an MCP tool. That is local config + keychain mutation driven from a prompt,
+and a prompt-injection could register an attacker-controlled host inheriting the
+shared monitoring credential — a credential-exfil path on the next login. Those
+operations live only in the ``node804-hpe-msa-mcp-setup`` CLI wizard, which the
+user runs themselves. The underlying ``save_array_entry`` / ``save_defaults`` /
+``remove_array_entry`` helpers remain in ``config.arrays`` for the wizard.
 """
 
 from __future__ import annotations
@@ -19,13 +24,9 @@ from node804_mcp_toolkit import FieldsList, Mode, Pagination, Pattern, VerboseFl
 from pydantic import Field
 
 from ..config.arrays import (
-    ArrayEntry,
     get_defaults,
     is_multi_array,
     list_array_entries,
-    resolve_array,
-    save_array_entry,
-    save_defaults,
 )
 from ..responses.shapers import SHAPE_GENERIC
 from ._common import ArrayParam, ToolContext, fetch_list
@@ -136,112 +137,6 @@ def register_utility_tools(ctx: ToolContext) -> None:
             "multi_array": is_multi_array(),
             "defaults": get_defaults(),
             "arrays": entries,
-        }
-
-    @ctx.gate.tool(ctx.mcp, required=Mode.READ)
-    async def set_default_credentials(
-        username: str | None = None,
-        password: str | None = None,
-    ) -> dict[str, Any]:
-        """Set the shared default username and/or password used by all arrays.
-
-        For environments with the same monitoring account on every array: set
-        the credentials once here, then register arrays with just a name + host
-        (``add_array`` without username/password). Any array can still override.
-
-        Writes *local MCP configuration*: the username goes to the ``defaults``
-        block in arrays.json; the password goes to the OS keychain default
-        account (plaintext in arrays.json, mode 0600, only as a headless
-        fallback). The password is never echoed back. Either argument may be
-        omitted to change only the other.
-        """
-        if username is None and password is None:
-            return {"success": False, "error": "Provide a username, a password, or both."}
-        try:
-            save_defaults(username=username, password=password)
-        except Exception as exc:
-            from .._redact import redact_exception
-
-            return {"success": False, "error": redact_exception(exc)}
-        return {"success": True, "defaults": get_defaults()}
-
-    @ctx.gate.tool(ctx.mcp, required=Mode.READ)
-    async def add_array(
-        name: str,
-        host: str | None = None,
-        hosts: list[str] | None = None,
-        username: str | None = None,
-        password: str | None = None,
-    ) -> dict[str, Any]:
-        """Register a new MSA array in the local config (+ OS keychain).
-
-        One entry per array (not per controller). Provide a single ``host`` (the
-        management VIP is ideal), or ``hosts`` — a failover-ordered list, e.g.
-        both controller management IPs — tried in order until one answers.
-
-        ``username`` and ``password`` are OPTIONAL: omit them to inherit the
-        shared defaults set via ``set_default_credentials`` (the common case
-        when every array uses the same monitoring account). When supplied, the
-        username is stored in arrays.json and the password in the OS keychain
-        (plaintext in arrays.json, mode 0600, only as a headless fallback); the
-        password is never echoed back.
-
-        This writes *local MCP configuration* only — it does NOT modify the
-        storage array, so it stays within the read-only posture toward hardware.
-        """
-        host_list: list[str] = []
-        if host:
-            host_list.append(host)
-        if hosts:
-            host_list.extend(hosts)
-        if not host_list:
-            return {"success": False, "error": "Provide 'host' or 'hosts' (at least one address)."}
-
-        defaults = get_defaults()
-        default_username = defaults.get("username")
-        effective_username = username or (
-            default_username if isinstance(default_username, str) else None
-        )
-        if not effective_username:
-            return {
-                "success": False,
-                "error": (
-                    "No username given and no shared default is set. Pass 'username' or call "
-                    "set_default_credentials first."
-                ),
-            }
-        # A password must be resolvable: either supplied now, or a shared default exists.
-        if not password and not defaults.get("password_set"):
-            return {
-                "success": False,
-                "error": (
-                    "No password given and no shared default is set. Pass 'password' or call "
-                    "set_default_credentials first."
-                ),
-            }
-
-        try:
-            # password=None → the entry inherits the shared default at load time.
-            entry = ArrayEntry(
-                name=name,
-                hosts=host_list,
-                username=effective_username,
-                password=password or None,
-            )
-            save_array_entry(entry)
-        except Exception as exc:
-            from .._redact import redact_exception
-
-            return {"success": False, "error": f"Invalid array entry: {redact_exception(exc)}"}
-
-        resolved = resolve_array(name)
-        return {
-            "success": True,
-            "name": name,
-            "hosts": list(resolved.hosts) if resolved else host_list,
-            "username": effective_username,
-            "inherits_default_password": not bool(password),
-            "multi_array": is_multi_array(),
         }
 
 
