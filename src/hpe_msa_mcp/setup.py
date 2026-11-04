@@ -18,9 +18,12 @@ It walks through the things the server needs:
 5. the ``hpe-msa-engineer`` skill — copied into ``~/.claude/skills`` for Claude
    Code, and zipped for upload to Claude Desktop / claude.ai.
 
-Nothing sensitive is echoed: the password is read with ``getpass`` and handed
-straight to the keychain. The Claude Desktop config is backed up before it is
-touched.
+Nothing sensitive is echoed: the password is read with ``getpass``, confirmed by
+retype, and handed straight to the keychain. Some terminals (VS Code / other
+integrated consoles) can't hide input and make ``getpass`` mis-read — the wizard
+warns on that and on a suspiciously short value, and ``--password-stdin`` is a
+terminal-agnostic alternative. The Claude Desktop config is backed up before it
+is touched.
 
 Subcommands (the wizard is the default when none is given)::
 
@@ -35,8 +38,9 @@ and lets you skip straight to the client/skill steps, so re-running it to re-wir
 a client or refresh the skill does not force you to re-enter an array.
 
 Non-interactive use (for scripted installs): pass ``--name`` / ``--host`` and
-provide the password in the ``MSA_SETUP_PASSWORD`` environment variable. Add
-``--yes`` to accept every default without prompting.
+provide the password in the ``MSA_SETUP_PASSWORD`` environment variable or on
+stdin with ``--password-stdin``. Add ``--yes`` to accept every default without
+prompting.
 """
 
 from __future__ import annotations
@@ -50,6 +54,7 @@ import shutil
 import stat
 import sys
 import time
+import warnings
 import zipfile
 from collections.abc import Callable
 from contextlib import suppress
@@ -324,39 +329,111 @@ def _parse_hosts(raw: str) -> list[str]:
 
 # --- Credential resolution --------------------------------------------------
 
+# getpass under-reads in some Windows terminals (VS Code / integrated consoles),
+# silently storing a 1-char password that then fails at login. A secret shorter
+# than this triggers a confirm prompt so the truncation is caught at entry.
+_MIN_REASONABLE_SECRET = 4
 
-def _resolve_password(name: str, *, assume_yes: bool, inherit_ok: bool) -> str | None:
-    """Get the password for ``name``: env var, a kept keychain entry, or prompt.
 
-    When ``inherit_ok`` (shared defaults exist), an empty prompt is allowed and
-    returns ``None`` so the entry inherits the shared default / env password.
+def _scripted_password(args: argparse.Namespace) -> str | None:
+    """Password from a non-interactive source: ``MSA_SETUP_PASSWORD`` or stdin.
+
+    ``--password-stdin`` reads the whole of stdin (one trailing newline stripped),
+    which is terminal-agnostic and never echoed — the robust path when getpass is
+    unreliable. The env var takes precedence so a scripted rollout can set either.
     """
-    existing = keyring.get_password(KEYRING_SERVICE, name)
-    password: str | None = os.environ.get(PASSWORD_ENV) or None
-    if (
-        password is None
-        and existing
-        and _prompt_yes_no(
-            f"A password for '{name}' is already in the keychain. Keep it?",
-            True,
-            assume_yes=assume_yes,
+    env = os.environ.get(PASSWORD_ENV)
+    if env:
+        return env
+    if getattr(args, "password_stdin", False):
+        raw = sys.stdin.read()
+        secret = raw.rstrip("\r\n")
+        return secret or None
+    return None
+
+
+def _read_secret_once(prompt: str) -> str:
+    """Read one hidden value, surfacing getpass's insecure-fallback warning."""
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always", getpass.GetPassWarning)
+        secret = getpass.getpass(prompt)
+    if any(issubclass(w.category, getpass.GetPassWarning) for w in caught):
+        print(
+            "[warn] This terminal can't hide input securely; getpass fell back to "
+            "line input and may mis-read. Prefer a plain console window, or pass "
+            "--password-stdin.",
+            file=sys.stderr,
         )
+    return secret
+
+
+def _read_secret(label: str, *, allow_empty: bool) -> str | None:
+    """Prompt for a hidden secret, confirmed by retype, with a short-value guard.
+
+    Interactive only. Re-prompts on mismatch; on a suspiciously short value (the
+    getpass truncation seen in some terminals) it warns and requires an explicit
+    yes before accepting, so a mangled password is caught here, not at login.
+    Returns None only when ``allow_empty`` and the first entry is blank.
+    """
+    while True:
+        first = _read_secret_once(f"{label}: ").strip()
+        if not first:
+            if allow_empty:
+                return None
+            print("  A value is required.")
+            continue
+        second = _read_secret_once(f"{label} (confirm): ").strip()
+        if first != second:
+            print("  Entries did not match — try again.")
+            continue
+        if len(first) < _MIN_REASONABLE_SECRET and not _prompt_yes_no(
+            f"  Only {len(first)} character(s) captured — is that the whole password?",
+            False,
+            assume_yes=False,
+        ):
+            print("  Re-enter it, or use --password-stdin / a plain console window.")
+            continue
+        return first
+
+
+def _resolve_password(
+    name: str, *, assume_yes: bool, inherit_ok: bool, supplied: str | None = None
+) -> str | None:
+    """Get the password for ``name``: scripted source, a kept keychain entry, or prompt.
+
+    ``supplied`` is the non-interactive password (env / stdin) resolved by the
+    caller and takes precedence. When ``inherit_ok`` (shared defaults exist), an
+    empty interactive entry is allowed and returns ``None`` so the entry inherits
+    the shared default / env password.
+    """
+    if supplied:
+        return supplied
+    existing = keyring.get_password(KEYRING_SERVICE, name)
+    if existing and _prompt_yes_no(
+        f"A password for '{name}' is already in the keychain. Keep it?",
+        True,
+        assume_yes=assume_yes,
     ):
         return existing
-    if password is None and not assume_yes:
-        hint = " (leave blank to use shared default)" if inherit_ok else " (input hidden)"
-        password = getpass.getpass(f"MSA password for '{name}'{hint}: ").strip()
-    return password or None
+    if assume_yes:
+        return None
+    hint = " (blank = shared default)" if inherit_ok else ""
+    return _read_secret(f"MSA password for '{name}'{hint}", allow_empty=inherit_ok)
 
 
-def _save_array(name: str, hosts: list[str], username: str, *, assume_yes: bool) -> int:
+def _save_array(
+    name: str, hosts: list[str], username: str, *, assume_yes: bool, supplied: str | None = None
+) -> int:
     """Store the password in the keychain and add/update the arrays.json entry."""
     inherit_ok = _default_password_present()
-    password = _resolve_password(name, assume_yes=assume_yes, inherit_ok=inherit_ok)
+    password = _resolve_password(
+        name, assume_yes=assume_yes, inherit_ok=inherit_ok, supplied=supplied
+    )
     if password is None and not inherit_ok:
         print(
-            f"ERROR: no password for '{name}'. Set {PASSWORD_ENV} for non-interactive "
-            "use, set shared default credentials first, or run interactively.",
+            f"ERROR: no password for '{name}'. Set {PASSWORD_ENV} or pass "
+            "--password-stdin for non-interactive use, set shared default "
+            "credentials first, or run interactively.",
             file=sys.stderr,
         )
         return 2
@@ -380,7 +457,7 @@ def _default_password_present() -> bool:
     return with_env or in_keychain
 
 
-def _maybe_set_defaults(args: argparse.Namespace) -> None:
+def _maybe_set_defaults(args: argparse.Namespace, *, supplied: str | None = None) -> None:
     """Offer to set shared default credentials (one user+password for all arrays)."""
     if args.yes and not args.set_defaults:
         return
@@ -395,9 +472,9 @@ def _maybe_set_defaults(args: argparse.Namespace) -> None:
     if not want:
         return
     username = _prompt("Default username", "monitor", assume_yes=args.yes)
-    password = os.environ.get(PASSWORD_ENV) or None
+    password = supplied
     if password is None and not args.yes:
-        password = getpass.getpass("Default password (input hidden): ").strip() or None
+        password = _read_secret("Default password", allow_empty=True)
     if not password:
         print("[warn] No default password provided; skipping defaults.", file=sys.stderr)
         return
@@ -448,8 +525,11 @@ def run(args: argparse.Namespace) -> int:
         print(f"\nExisting entries in {get_config_path()}:")
         _print_entries(existing)
 
+    # One non-interactive password source (env / stdin) for this run, read once.
+    supplied = _scripted_password(args)
+
     # Shared defaults first, so a subsequent array can inherit them.
-    _maybe_set_defaults(args)
+    _maybe_set_defaults(args, supplied=supplied)
 
     # Add/update an array entry. Forced when --name/--host are given or nothing is
     # configured yet; otherwise opt-in, so a re-run can go straight to the
@@ -471,7 +551,7 @@ def run(args: argparse.Namespace) -> int:
             print("ERROR: at least one host is required.", file=sys.stderr)
             return 2
         username = args.username or _prompt("Username", "monitor", assume_yes=args.yes)
-        rc = _save_array(name, hosts, username, assume_yes=args.yes)
+        rc = _save_array(name, hosts, username, assume_yes=args.yes, supplied=supplied)
         if rc:
             return rc
 
@@ -527,7 +607,9 @@ def run_array(args: argparse.Namespace) -> int:
             print("ERROR: at least one host is required.", file=sys.stderr)
             return 2
         username = args.username or _prompt("Username", "monitor", assume_yes=args.yes)
-        return _save_array(name, hosts, username, assume_yes=args.yes)
+        return _save_array(
+            name, hosts, username, assume_yes=args.yes, supplied=_scripted_password(args)
+        )
 
     if cmd == "remove":
         if remove_array_entry(args.name):
@@ -555,6 +637,11 @@ def _add_wizard_args(p: argparse.ArgumentParser) -> None:
     p.add_argument("--name", help="Array entry name (keychain account).")
     p.add_argument("--host", help="Array host(s): VIP or comma-separated controller IPs.")
     p.add_argument("--username", help="Controller username for this array.")
+    p.add_argument(
+        "--password-stdin",
+        action="store_true",
+        help="Read the password from stdin (terminal-agnostic; avoids getpass).",
+    )
     p.add_argument(
         "--mode", choices=MODES, help="Permission mode (read-only server; default: read)."
     )
@@ -649,10 +736,15 @@ def build_parser() -> argparse.ArgumentParser:
     ar_add.add_argument("--host", help="Array host(s): VIP or comma-separated controller IPs.")
     ar_add.add_argument("--username", help="Controller username for this array.")
     ar_add.add_argument(
+        "--password-stdin",
+        action="store_true",
+        help="Read the password from stdin (terminal-agnostic; avoids getpass).",
+    )
+    ar_add.add_argument(
         "--yes",
         "-y",
         action="store_true",
-        help=f"Non-interactive; password must come from {PASSWORD_ENV}.",
+        help=f"Non-interactive; password from {PASSWORD_ENV} or --password-stdin.",
     )
     ar_rm = arsub.add_parser("remove", help="Remove an entry and its keychain password.")
     ar_rm.add_argument("--name", required=True, help="Entry name to remove.")

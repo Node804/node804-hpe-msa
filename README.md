@@ -1,5 +1,10 @@
 # node804-hpe-msa-mcp
 
+[![CI](https://github.com/Node804/node804-hpe-msa/actions/workflows/ci.yml/badge.svg)](https://github.com/Node804/node804-hpe-msa/actions/workflows/ci.yml)
+[![PyPI](https://img.shields.io/pypi/v/node804-hpe-msa-mcp)](https://pypi.org/project/node804-hpe-msa-mcp/)
+[![Python](https://img.shields.io/pypi/pyversions/node804-hpe-msa-mcp)](https://pypi.org/project/node804-hpe-msa-mcp/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
 A token-efficient, **read-only** [Model Context Protocol](https://modelcontextprotocol.io)
 server for **HPE MSA** (Modular Smart Array) storage — Gen5 (1050/2050/2052) and
 Gen6 (1060/2060/2062). It exposes the array's `show`-style visibility through the
@@ -37,30 +42,38 @@ bundled inside the published wheel so the wizard can install it offline.
 
 Requires Python ≥ 3.13.
 
-### Linux / macOS
+**Option A — uv (recommended).** No install step: `uvx` fetches the package from
+PyPI on first run and caches it. Pin the version so upgrades are deliberate:
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -e ".[dev]"
+uvx node804-hpe-msa-mcp==0.1.0
 ```
 
-### Windows (PowerShell)
+**Option B — pip:**
 
-```powershell
-py -3.13 -m venv .venv
-.\.venv\Scripts\Activate.ps1
-pip install -e ".[dev]"
+```bash
+pip install node804-hpe-msa-mcp
 ```
 
-After installation the console script lives at:
+**Option C — from source (development):**
 
-- Linux/macOS: `.venv/bin/node804-hpe-msa-mcp`
-- Windows: `.venv\Scripts\node804-hpe-msa-mcp.exe`
+```bash
+git clone https://github.com/Node804/node804-hpe-msa.git
+cd node804-hpe-msa
+uv sync          # or: pip install -e ".[dev]"
+```
 
-Note the paths in this README use `.venv` in the project root; substitute the
-absolute path to your virtual environment when configuring an MCP host (see the
-[Claude Desktop](#claude-desktop) section for a full Windows example).
+Each option provides the `node804-hpe-msa-mcp` command (and the
+`node804-hpe-msa-mcp-setup` wizard), plus the `hpe_msa_mcp` Python module
+(runnable as `python -m hpe_msa_mcp`). The package pulls in its dependency
+[`node804-mcp-toolkit`](https://pypi.org/project/node804-mcp-toolkit/) — shared
+RBAC, audit-logging, TLS, and lean-response utilities — automatically.
+
+On Windows, a pip/venv install puts the console scripts at
+`.venv\Scripts\node804-hpe-msa-mcp.exe` (and `...-setup.exe`); on Linux/macOS at
+`.venv/bin/node804-hpe-msa-mcp`. When configuring an MCP host, use the command's
+absolute path (or run it via `uvx`) — see the [Claude Desktop](#claude-desktop)
+section for a full Windows example.
 
 ## Quick setup (wizard)
 

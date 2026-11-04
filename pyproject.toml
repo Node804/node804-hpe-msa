@@ -46,9 +46,9 @@ name = "Michael Pope"
 email = "me@michaelpope.cv"
 
 [project.urls]
-Homepage = "https://github.com/Node804/node804-hpe-msa-mcp"
-Repository = "https://github.com/Node804/node804-hpe-msa-mcp"
-Issues = "https://github.com/Node804/node804-hpe-msa-mcp/issues"
+Homepage = "https://github.com/Node804/node804-hpe-msa"
+Repository = "https://github.com/Node804/node804-hpe-msa"
+Issues = "https://github.com/Node804/node804-hpe-msa/issues"
 
 [project.scripts]
 node804-hpe-msa-mcp = "hpe_msa_mcp.server:main"

@@ -57,8 +57,11 @@ A bundled wizard that configures the server end to end, so a new install no
 longer means hand-editing JSON. Run `node804-hpe-msa-mcp-setup` (or
 `python -m hpe_msa_mcp.setup` if the console script isn't on `PATH`).
 
-- Stores the controller password in the OS keychain (read with `getpass`, never
-  written to disk) and writes only non-secret fields to `arrays.json`.
+- Stores the controller password in the OS keychain (read with `getpass`,
+  confirmed by retype, never written to disk) and writes only non-secret fields
+  to `arrays.json`. Guards against terminals where `getpass` mis-reads (warns on
+  the insecure fallback and on a suspiciously short value); `--password-stdin`
+  offers a terminal-agnostic alternative.
 - Supports a comma-separated failover host list and optional shared defaults.
 - Wires a Claude Desktop server entry (host and password resolve from
   `arrays.json` + keychain, so neither lands in the client config), backing up the
@@ -83,5 +86,5 @@ audit, performance review, event triage, firmware inventory).
   and 3.14) and PyPI publishing via Trusted Publishing (OIDC) on `v*` tags.
 - Pre-commit hooks (ruff) pinned to the same ruff version as CI.
 
-[Unreleased]: https://github.com/Node804/node804-hpe-msa-mcp/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/Node804/node804-hpe-msa-mcp/releases/tag/v0.1.0
+[Unreleased]: https://github.com/Node804/node804-hpe-msa/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/Node804/node804-hpe-msa/releases/tag/v0.1.0

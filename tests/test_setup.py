@@ -158,6 +158,41 @@ def test_array_add_without_password_fails(monkeypatch: pytest.MonkeyPatch) -> No
     assert setup_mod.run_array(args) == 2
 
 
+def test_array_add_password_stdin(_isolate: _FakeKeyring, monkeypatch: pytest.MonkeyPatch) -> None:
+    import io
+
+    monkeypatch.setattr("sys.stdin", io.StringIO("piped-secret-123\n"))
+    args = _parse(
+        ["array", "add", "--name", "p", "--host", "10.0.0.1", "--password-stdin", "--yes"]
+    )
+    assert setup_mod.run_array(args) == 0
+    # Trailing newline stripped; full value stored (not truncated).
+    assert _isolate.get_password(SERVICE, "p") == "piped-secret-123"
+
+
+def test_scripted_password_env_beats_stdin(monkeypatch: pytest.MonkeyPatch) -> None:
+    import io
+
+    monkeypatch.setenv(setup_mod.PASSWORD_ENV, "fromenv")
+    monkeypatch.setattr("sys.stdin", io.StringIO("fromstdin\n"))
+    args = _parse(["array", "add", "--password-stdin"])
+    assert setup_mod._scripted_password(args) == "fromenv"
+
+
+def test_read_secret_rejects_mismatch_then_short(monkeypatch: pytest.MonkeyPatch) -> None:
+    # Simulate: mismatch, then a 1-char value the user declines, then a good one.
+    secrets = iter(["abcdefgh", "ZZZ", "x", "x", "realpassword", "realpassword"])
+    yesno = iter([False])  # decline "is 1 char the whole password?"
+    monkeypatch.setattr(setup_mod, "_read_secret_once", lambda prompt: next(secrets))
+    monkeypatch.setattr(setup_mod, "_prompt_yes_no", lambda *a, **k: next(yesno))
+    assert setup_mod._read_secret("pw", allow_empty=False) == "realpassword"
+
+
+def test_read_secret_allow_empty_returns_none(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(setup_mod, "_read_secret_once", lambda prompt: "")
+    assert setup_mod._read_secret("pw", allow_empty=True) is None
+
+
 def test_array_add_inherits_shared_default(
     _isolate: _FakeKeyring, monkeypatch: pytest.MonkeyPatch
 ) -> None:
